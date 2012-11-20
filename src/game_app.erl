@@ -14,11 +14,9 @@
 
 -spec start(start_type(), start_args()) -> {ok, pid()} | {ok, pid(), _}.
 start(_StartType, _StartArgs) ->
-    io:format("Started~n"),
     game_sup:start_link().
 
--spec stop(_) -> ok.
+-spec stop(_) -> ok | {error, not_started}.
 stop(_State) ->
     ok.
-
 

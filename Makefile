@@ -13,7 +13,8 @@ deps:
 
 # Cleans any generated files from the repo (except dependencies)
 clean:
-	rebar clean
+	rm -rf .eunit/*.xml .eunit/*.html .eunit/*.beam .eunit/*.erl .eunit/*.log
+	rm -f ebin/*
 	rm -f test/ebin/*
 	rm -f doc/*.html doc/*.css doc/*.png doc/edoc-info
 

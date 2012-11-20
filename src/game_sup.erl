@@ -44,7 +44,7 @@ start_link() ->
 -spec init([]) -> {ok,{{strategy(),non_neg_integer(),non_neg_integer()},[child_spec()]}}.
 init([]) ->
     Childs = [
-        ?CHILD(game_server, worder)
+        ?CHILD(game_server, worker)
     ],
     {ok, {{one_for_one, 5, 10}, Childs}}.
 

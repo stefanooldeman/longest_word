@@ -38,8 +38,7 @@ say_hello() ->
     {reply,reply(),state()} | {reply,reply(),state(),hibernate | timeout()} |
     {stop,reason(),state()} | {stop,reason(),reply(),state()}.
 handle_call(hello, _From, State) ->
-    io:format("Hello from server!~n", []),
-    {reply, ok, State};
+    {reply, hello, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
