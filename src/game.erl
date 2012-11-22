@@ -15,6 +15,10 @@
 -type reply() :: term().
 -type reason() :: term().
 
+-record(state, {
+    players :: [player()],
+    scores :: [{player_name(), [integer()]}]
+}).
 
 %%--------------------------------------------------------------------
 %% API (delegated to sync | async calls)
@@ -27,23 +31,28 @@ start_link() ->
 -spec init([]) -> {ok, record()} | {ok, record(), timeout()} | {ok, record(), hibernate} |
     {stop, reason()}.
 init([]) ->
-    {ok, []}.
-
+    InitState=#state {players=[], scores=[]},
+    {ok, InitState}.
 
 -spec submit(player_name(), string()) -> ok.
 submit(Player, Sentence) -> 
     Score=submit_score(Player, length(get_longest_word(Sentence))),
+    %gen_server:call(?MODULE, get_highscores),
     % 
     % "Great job <USER>, you have a new <HIGHSCORE> with word <WORD>!".
     % or print score: x
     ok.
 
--spec get_player() -> [player()].
-get_player() -> gen_server:call(?MODULE, all_players).
+-spec get_player() -> [player()] | [].
+get_player() ->
+    lists:reverse(gen_server:call(?MODULE, all_players)).
 
--spec get_player(player_name()) -> player().
-get_player(Player) ->
-    gen_server:call(?MODULE, {player, Player}).
+-spec get_player(player_name()) -> player() | {error, not_found}.
+get_player(Name) ->
+    case lists:keyfind(Name, 1, gen_server:call(?MODULE, all_players)) of
+        false -> {error, not_found};
+        T when is_tuple(T) -> T
+    end.
 
 %%--------------------------------------------------------------------
 %% Private functions
@@ -80,7 +89,7 @@ handle_call({submit_score, PlayerName, Score}, _From, #state{players=Players,sco
             PlayersList= lists:keyreplace(PlayerName, 1, Players, T)
     end,
     % add highscore shit here
-    ScoresList=[Score|Scores],
+    ScoresList=[],
     {reply, Score, State#state{players=PlayersList,scores=ScoresList}};
 
 handle_call(_Request, _From, State) ->
