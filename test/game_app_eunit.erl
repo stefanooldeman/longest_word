@@ -5,8 +5,8 @@
 start() ->
     Name=game,
     ok = application:start(Name),
-    Sup=whereis(game_sup),
-    Server=whereis(game_server),
+    Sup=whereis(game_sup), % supervisor
+    Server=whereis(game),  % gen_server
     {Name, Sup, Server}.
 
 

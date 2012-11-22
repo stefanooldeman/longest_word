@@ -1,4 +1,4 @@
--module(game_server).
+-module(game).
 
 -behaviour(gen_server).
 
@@ -28,7 +28,7 @@ init([]) ->
 %
 -spec say_hello() -> ok.
 say_hello() ->
-    gen_server:call(?MODULE, hello).
+    gen_server:call(?MODULE, submit).
 
 %%
 %% Callback functions for gen_server
@@ -37,8 +37,8 @@ say_hello() ->
     {noreply,state()}       | {noreply,state(),hibernate | timeout()} |
     {reply,reply(),state()} | {reply,reply(),state(),hibernate | timeout()} |
     {stop,reason(),state()} | {stop,reason(),reply(),state()}.
-handle_call(hello, _From, State) ->
-    {reply, hello, State};
+handle_call(submit, _From, State) ->
+    {reply, submit_bla, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
