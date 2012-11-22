@@ -37,8 +37,7 @@ init([]) ->
 
 -spec submit(player_name(), string()) -> ok.
 submit(Player, Sentence) -> 
-    Score=length(get_longest_word(Sentence)),
-    submit_score(Player, Score),
+    Score=submit_score(Player, length(get_longest_word(Sentence))),
     % 
     % "Great job <USER>, you have a new <HIGHSCORE> with word <WORD>!".
     % or print score: x
@@ -60,9 +59,9 @@ submit_score(Player, Score) ->
    gen_server:call(?MODULE, {submit_score, Player, Score}).
 
 get_longest_word(Sentence) ->
-    %chop in words,
-    %which one is the longest
-    "".
+    List=[{X, length(X)} || X <- string:tokens(Sentence, " ")],
+    [{Word,_}|_]=lists:reverse(lists:keysort(2,List)),
+    Word.
 
 %%
 %% Callback functions for gen_server
