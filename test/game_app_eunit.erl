@@ -12,7 +12,7 @@ start() ->
 
 %% Cleanup function
 stop({Name, _Supervisor, _Server}) ->
-    ok = application:stop(Name),
+    _ = application:stop(Name),
     timer:sleep(500).
 
 all_test_() ->
