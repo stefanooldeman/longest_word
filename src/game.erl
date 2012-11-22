@@ -3,10 +3,18 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, say_hello/0]).
+-export([start_link/0]).
 
 -type state() :: [any()] | [] | undefined.
 -type start_link_error() :: {already_started, pid()} | term().
+
+-export([submit/2, get_player/0, get_player/1]).
+
+-type player_name() :: atom().
+-type player() :: {player_name(), tuple()} | {error, not_found}.
+
+%% later this will be private or moved whatever
+-export([get_longest_word/1]).
 
 %% Callback functions
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -26,19 +34,55 @@ init([]) ->
 %
 % Public API delegated to sync | async calls
 %
--spec say_hello() -> ok.
-say_hello() ->
-    gen_server:call(?MODULE, submit).
+
+-spec submit(player_name(), string()) -> ok.
+submit(Player, Sentence) -> 
+    Score=length(get_longest_word(Sentence)),
+    submit_score(Player, Score),
+    % 
+    % "Great job <USER>, you have a new <HIGHSCORE> with word <WORD>!".
+    % or print score: x
+    ok.
+
+-spec get_player() -> [player()].
+get_player() -> gen_server:call(?MODULE, all_players).
+
+-spec get_player(player_name()) -> player().
+get_player(Player) ->
+    gen_server:call(?MODULE, {player, Player}).
+
+%%
+%% Private functions
+%%
+
+-spec submit_score(player_name(), integer()) -> integer().
+submit_score(Player, Score) ->
+   gen_server:call(?MODULE, {submit_score, Player, Score}).
+
+get_longest_word(Sentence) ->
+    %chop in words,
+    %which one is the longest
+    "".
 
 %%
 %% Callback functions for gen_server
 %%
--spec handle_call(_, _, state()) -> 
+-spec handle_call(_, {pid(),_}, state()) -> 
     {noreply,state()}       | {noreply,state(),hibernate | timeout()} |
     {reply,reply(),state()} | {reply,reply(),state(),hibernate | timeout()} |
     {stop,reason(),state()} | {stop,reason(),reply(),state()}.
-handle_call(submit, _From, State) ->
-    {reply, submit_bla, State};
+handle_call(all_players, _From, State) ->
+    Reply=[],
+    {reply, Reply, State};
+
+handle_call({player, Player}, _From, State) ->
+    %Reply={Player, {}},
+    Reply={error, not_found},
+    {reply, Reply, State};
+
+handle_call({submit_score, Player, Score}, _From, State) ->
+    %handle state shit here
+    {reply, Score, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
