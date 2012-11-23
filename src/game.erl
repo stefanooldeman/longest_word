@@ -45,7 +45,7 @@ submit(Player, Sentence) ->
 
 -spec get_player() -> [player()] | [].
 get_player() ->
-    lists:reverse(gen_server:call(?MODULE, all_players)).
+    gen_server:call(?MODULE, all_players).
 
 -spec get_player(player_name()) -> player() | {error, not_found}.
 get_player(Name) ->
@@ -80,14 +80,8 @@ handle_call(all_players, _From, #state{players=Players}=State) ->
 
 handle_call({submit_score, PlayerName, Score}, _From, #state{players=Players,scores=Scores}=State) ->
     %make sure user is updated
-    case lists:keyfind(PlayerName, 1, Players) of
-        false ->
-            %create if not present
-            PlayersList= [{PlayerName, {}}|Players];
-        T ->
-            %TODO update player ranking and times played ;)
-            PlayersList= lists:keyreplace(PlayerName, 1, Players, T)
-    end,
+    Facts={},
+    PlayersList= lists:keystore(PlayerName, 1, Players, {PlayerName, Facts}),
     % add highscore shit here
     ScoresList=[],
     {reply, Score, State#state{players=PlayersList,scores=ScoresList}};
