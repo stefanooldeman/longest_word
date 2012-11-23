@@ -11,7 +11,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -type player_name() :: atom().
--type player() :: {player_name(), tuple()}.
+-type player() :: {player_name(), [{atom(), term()}]}.
 -type reply() :: term().
 -type reason() :: term().
 
@@ -80,7 +80,7 @@ handle_call(all_players, _From, #state{players=Players}=State) ->
 
 handle_call({submit_score, PlayerName, Score}, _From, #state{players=Players,scores=Scores}=State) ->
     %make sure user is updated
-    Facts={},
+    Facts=[],
     PlayersList= lists:keystore(PlayerName, 1, Players, {PlayerName, Facts}),
     % add highscore shit here
     ScoresList=[],

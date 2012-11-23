@@ -19,6 +19,7 @@ stateless_actions_test_() ->
      fun stop/1,
      [ % --- list of tests ----
         fun create_first_player/1,
+        fun players_should_be_added_once/1,
         fun players_ordered/1,
         fun get_longest_word/1
       ]
@@ -29,7 +30,13 @@ create_first_player(_) ->
     [?_assertMatch([], game:get_player()),
      ?_assertMatch({error, not_found}, game:get_player(PlayerName)),
      ?_assertMatch(ok, game:submit(PlayerName, "this is my foobar")),
-     ?_assertMatch({PlayerName, T} when is_tuple(T), game:get_player(PlayerName))
+     ?_assertMatch({PlayerName, Facts} when is_list(Facts), game:get_player(PlayerName))
+     ].
+
+players_should_be_added_once(_) ->
+    [?_assertMatch(ok, game:submit(foo, "bla bla")),
+     ?_assertMatch(ok, game:submit(foo, "this is my foobar")),
+     ?_assertMatch([{foo, []}], game:get_player())
      ].
 
 % players are retrieved in the order that they applied
@@ -37,7 +44,7 @@ players_ordered(_) ->
     [?_assertMatch([], game:get_player()),
      ?_assertMatch(ok, game:submit(foo, "this is my foobar")),
      ?_assertMatch(ok, game:submit(bar, "this is my bar")),
-     ?_assertMatch([{foo, {}}, {bar, {}}], game:get_player())
+     ?_assertMatch([{foo, []}, {bar, []}], game:get_player())
      ].
 
 get_longest_word(_) ->
