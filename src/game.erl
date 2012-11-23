@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, submit/2, get_player/0, get_player/1, get_scores/0, get_scores/1]).
+-export([start_link/0, submit/2, get_player/0, get_player/1, get_scores/0, get_scores/1, get_highscore/0]).
 
 %% later this will be private or moved whatever
 -export([get_longest_word/1]).
@@ -32,12 +32,13 @@ start_link() ->
 -spec init([]) -> {ok, record()} | {ok, record(), timeout()} | {ok, record(), hibernate} |
     {stop, reason()}.
 init([]) ->
-    InitState=#state {players=[], scores=[], highscore={}},
+    InitState=#state {players=[], scores=[], highscore={factory, 0}},
     {ok, InitState}.
 
 -spec submit(player_name(), string()) -> ok.
 submit(Player, Sentence) -> 
     Score=submit_score(Player, Sentence),
+    ?MODULE ! update_highscore,
     % "Great job <USER>, you have a new <HIGHSCORE> with word <WORD>!".
     Msg=lists:concat(["score: ", Score, "~n"]),
     io:format(Msg),
@@ -62,6 +63,10 @@ get_scores() ->
 get_scores(Name) ->
     %filter all scores on this player
     [{Score, Word} || {Player, Score, Word} <- get_scores(), Player == Name].
+
+-spec get_highscore() -> {player_name(), integer()}.
+get_highscore() ->
+    gen_server:call(?MODULE, get_highscore).
 
 %%--------------------------------------------------------------------
 %% Private functions
@@ -90,6 +95,9 @@ handle_call(all_players, _From, #state{players=Players}=State) ->
 handle_call(all_scores, _From, #state{scores=Scores}=State) ->
     {reply, Scores, State};
 
+handle_call(get_highscore, _From, #state{highscore=Highscore}=State) ->
+    {reply, Highscore, State};
+
 handle_call({submit_score, PlayerName, Sentence}, _From, #state{players=Players,scores=Scores}=State) ->
     %make sure user is updated
     Facts=[],
@@ -109,6 +117,18 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 -spec handle_info(_, record()) -> {noreply, _}.
+handle_info(update_highscore, #state{highscore=Highscore, scores=Scores}=State) ->
+    [{Player,Topscore,_}|_]=lists:reverse(lists:keysort(2, Scores)),
+    NewOne=case Highscore of
+        {_,Oldscore,_} when Topscore > Oldscore ->
+            {Player,Topscore};
+        {factory, 0} ->
+            {Player,Topscore};
+        {_,_} ->
+            Highscore
+    end,
+    {noreply, State#state{highscore=NewOne}};
+
 handle_info(_Info, State) ->
     {noreply, State}.
 

@@ -26,6 +26,7 @@ stateless_actions_test_() ->
         fun scores_get_saved/1,
         fun scores_dataformat/1,
         fun get_scores_player/1,
+        fun show_highscore_record/1,
         %internals
         fun get_longest_word/1
       ]
@@ -69,6 +70,14 @@ get_scores_player(_) ->
     [?_assertMatch(ok, game:submit(john, "reversed chronoligical order")),
      ?_assertMatch(ok, game:submit(john, "cadence")),
      ?_assertMatch([{7, "cadence"}, {13, "chronoligical"}], game:get_scores(john))
+     ].
+
+show_highscore_record(_) ->
+    [?_assertMatch(ok, game:submit(john, "reversed chronoligical order")),
+     ?_assertMatch(ok, game:submit(random_dude, "fooobar is used here often")),
+     ?_assertMatch(ok, game:submit(john, "running and cadence are related")),
+     ?_assertMatch(ok, game:submit(john, "this is a nice training for your vocabulaire")),
+     ?_assertMatch([{john, 13}], game:get_highscore())
      ].
 
 get_longest_word(_) ->
