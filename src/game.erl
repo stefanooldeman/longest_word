@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, submit/2, get_player/0, get_player/1]).
+-export([start_link/0, submit/2, get_player/0, get_player/1, get_scores/0, get_scores/1]).
 
 %% later this will be private or moved whatever
 -export([get_longest_word/1]).
@@ -17,7 +17,8 @@
 
 -record(state, {
     players :: [player()],
-    scores :: [{player_name(), [integer()]}]
+    scores :: [{player_name(), integer(), string()}],
+    highscore :: {player_name(), integer()}
 }).
 
 %%--------------------------------------------------------------------
@@ -31,16 +32,15 @@ start_link() ->
 -spec init([]) -> {ok, record()} | {ok, record(), timeout()} | {ok, record(), hibernate} |
     {stop, reason()}.
 init([]) ->
-    InitState=#state {players=[], scores=[]},
+    InitState=#state {players=[], scores=[], highscore={}},
     {ok, InitState}.
 
 -spec submit(player_name(), string()) -> ok.
 submit(Player, Sentence) -> 
-    Score=submit_score(Player, length(get_longest_word(Sentence))),
-    %gen_server:call(?MODULE, get_highscores),
-    % 
+    Score=submit_score(Player, Sentence),
     % "Great job <USER>, you have a new <HIGHSCORE> with word <WORD>!".
-    % or print score: x
+    Msg=lists:concat(["score: ", Score, "~n"]),
+    io:format(Msg),
     ok.
 
 -spec get_player() -> [player()] | [].
@@ -53,6 +53,15 @@ get_player(Name) ->
         false -> {error, not_found};
         T when is_tuple(T) -> T
     end.
+
+-spec get_scores() -> [{player_name(), integer(), string()}] | [].
+get_scores() ->
+    []. %lists:reverse(gen_server:call(?MODULE, all_scores)).
+
+-spec get_scores(player_name()) -> [{integer(), string()}] | [].
+get_scores(Name) ->
+    %list comprehension
+    []. %lists:reverse(gen_server:call(?MODULE, all_scores)).
 
 %%--------------------------------------------------------------------
 %% Private functions
@@ -78,12 +87,17 @@ get_longest_word(Sentence) ->
 handle_call(all_players, _From, #state{players=Players}=State) ->
     {reply, Players, State};
 
-handle_call({submit_score, PlayerName, Score}, _From, #state{players=Players,scores=Scores}=State) ->
+handle_call(all_scores, _From, #state{scores=Scores}=State) ->
+    {reply, Scores, State};
+
+handle_call({submit_score, PlayerName, Sentence}, _From, #state{players=Players,scores=Scores}=State) ->
     %make sure user is updated
     Facts=[],
     PlayersList= lists:keystore(PlayerName, 1, Players, {PlayerName, Facts}),
     % add highscore shit here
-    ScoresList=[],
+    Word=get_longest_word(Sentence),
+    Score=length(Word),
+    ScoresList=[{PlayerName, Score, Word}|Scores],
     {reply, Score, State#state{players=PlayersList,scores=ScoresList}};
 
 handle_call(_Request, _From, State) ->

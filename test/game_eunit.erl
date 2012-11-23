@@ -18,9 +18,15 @@ stateless_actions_test_() ->
      fun start/0,
      fun stop/1,
      [ % --- list of tests ----
+        %players
         fun create_first_player/1,
         fun players_should_be_added_once/1,
         fun players_ordered/1,
+        %scores
+        fun scores_get_saved/1,
+        fun scores_dataformat/1,
+        fun get_scores_player/1,
+        %internals
         fun get_longest_word/1
       ]
     }.
@@ -45,6 +51,26 @@ players_ordered(_) ->
      ?_assertMatch(ok, game:submit(foo, "this is my foobar")),
      ?_assertMatch(ok, game:submit(bar, "this is my bar")),
      ?_assertMatch([{foo, []}, {bar, []}], game:get_player())
+     ].
+
+scores_get_saved(_) ->
+    game:submit(john, "arithmic"),
+    game:submit(tommie_lie, "cadence"),
+    game:submit(simson, "Whoopsiedoh!"),
+    [?_assertMatch([Ta, Tb, Tc] when is_tuple(Ta), game:get_scores())].
+
+scores_dataformat(_) ->
+    game:submit(john, "foobar"),
+    [?_assertMatch([{john, 6, "foobar"}], game:get_scores())].
+
+get_scores_player(_) ->
+    Scores=[
+        {length("arithmic"), "arithmic"},
+        {length("cadence"), "cadence"}
+    ],
+    [?_assertMatch(ok, game:submit(john, "arithmic")),
+     ?_assertMatch(ok, game:submit(john, "cadence")),
+     ?_assertMatch(Scores, game:get_scores(john))
      ].
 
 get_longest_word(_) ->
