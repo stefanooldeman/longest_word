@@ -56,12 +56,12 @@ get_player(Name) ->
 
 -spec get_scores() -> [{player_name(), integer(), string()}] | [].
 get_scores() ->
-    []. %lists:reverse(gen_server:call(?MODULE, all_scores)).
+    gen_server:call(?MODULE, all_scores).
 
 -spec get_scores(player_name()) -> [{integer(), string()}] | [].
 get_scores(Name) ->
-    %list comprehension
-    []. %lists:reverse(gen_server:call(?MODULE, all_scores)).
+    %filter all scores on this player
+    [{Score, Word} || {Player, Score, Word} <- get_scores(), Player == Name].
 
 %%--------------------------------------------------------------------
 %% Private functions

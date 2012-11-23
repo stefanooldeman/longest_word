@@ -63,14 +63,12 @@ scores_dataformat(_) ->
     game:submit(john, "foobar"),
     [?_assertMatch([{john, 6, "foobar"}], game:get_scores())].
 
+% Results are in reversed chronoligical order
+% _that means, head recursive, no ordering and no reversing
 get_scores_player(_) ->
-    Scores=[
-        {length("arithmic"), "arithmic"},
-        {length("cadence"), "cadence"}
-    ],
-    [?_assertMatch(ok, game:submit(john, "arithmic")),
+    [?_assertMatch(ok, game:submit(john, "reversed chronoligical order")),
      ?_assertMatch(ok, game:submit(john, "cadence")),
-     ?_assertMatch(Scores, game:get_scores(john))
+     ?_assertMatch([{7, "cadence"}, {13, "chronoligical"}], game:get_scores(john))
      ].
 
 get_longest_word(_) ->
