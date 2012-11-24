@@ -74,13 +74,32 @@ get_highscore() ->
 
 -spec submit_score(player_name(), integer()) -> integer().
 submit_score(Player, Score) ->
-   gen_server:call(?MODULE, {submit_score, Player, Score}).
+    gen_server:call(?MODULE, {submit_score, Player, Score}).
 
 -spec get_longest_word(string()) -> string().
 get_longest_word(Sentence) ->
     List=[{X, length(X)} || X <- string:tokens(Sentence, " ")],
     [{Word,_}|_]=lists:reverse(lists:keysort(2,List)),
     Word.
+
+-spec update_player_facts(player(), list()) -> player().
+update_player_facts({PlayerName, []}, _ScoresList) ->
+    Facts=[{played, 1}, {rank, 0}],
+    {PlayerName, Facts};
+
+update_player_facts({PlayerName, Facts}, _ScoresList) ->
+    NewFacts=lists:map(fun(Fact) ->
+            case Fact of
+                {rank, R} when is_integer(R) -> {rank, give_rank(PlayerName)};
+                {played, X} -> {played, X+1}
+            end
+    end, Facts),
+    {PlayerName, NewFacts}.
+
+-spec give_rank(player_name()) -> integer().
+give_rank(_PlayerName) ->
+    0.
+
 
 %%--------------------------------------------------------------------
 %% Callback functions for gen_server
@@ -100,8 +119,11 @@ handle_call(get_highscore, _From, #state{highscore=Highscore}=State) ->
 
 handle_call({submit_score, PlayerName, Sentence}, _From, #state{players=Players,scores=Scores}=State) ->
     %make sure user is updated
-    Facts=[],
-    PlayersList= lists:keystore(PlayerName, 1, Players, {PlayerName, Facts}),
+    Player=case lists:keyfind(PlayerName, 1, Players) of
+        false -> {PlayerName, []};
+        Other when is_tuple(Other) -> Other
+    end,
+    PlayersList= lists:keystore(PlayerName, 1, Players, update_player_facts(Player, [])),
     % add highscore shit here
     Word=get_longest_word(Sentence),
     Score=length(Word),

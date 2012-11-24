@@ -13,7 +13,7 @@ stop(Name) ->
     application:stop(Name),
     timer:sleep(500).
 
-stateless_actions_test_() ->
+basic_actions_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
@@ -43,7 +43,7 @@ create_first_player(_) ->
 players_should_be_added_once(_) ->
     [?_assertMatch(ok, game:submit(foo, "bla bla")),
      ?_assertMatch(ok, game:submit(foo, "this is my foobar")),
-     ?_assertMatch([{foo, []}], game:get_player())
+     ?_assertMatch([{foo, [{played, 2}, {rank, Rank}]}] when is_integer(Rank), game:get_player())
      ].
 
 % players are retrieved in the order that they applied
@@ -51,7 +51,10 @@ players_ordered(_) ->
     [?_assertMatch([], game:get_player()),
      ?_assertMatch(ok, game:submit(foo, "this is my foobar")),
      ?_assertMatch(ok, game:submit(bar, "this is my bar")),
-     ?_assertMatch([{foo, []}, {bar, []}], game:get_player())
+     ?_assertMatch([
+            {foo, [{played, 1}, {rank, 0}]},
+            {bar, [{played, 1}, {rank, 0}]}
+        ], game:get_player())
      ].
 
 scores_get_saved(_) ->
@@ -77,7 +80,7 @@ show_highscore_record(_) ->
      ?_assertMatch(ok, game:submit(random_dude, "fooobar is used here often")),
      ?_assertMatch(ok, game:submit(john, "running and cadence are related")),
      ?_assertMatch(ok, game:submit(john, "this is a nice training for your vocabulaire")),
-     ?_assertMatch([{john, 13}], game:get_highscore())
+     ?_assertMatch({john, 13}, game:get_highscore())
      ].
 
 get_longest_word(_) ->
