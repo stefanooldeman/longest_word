@@ -1,2 +1,0 @@
-io:format("PROJECT: Longest word game~n").
-code:add_patha("./ebin").
