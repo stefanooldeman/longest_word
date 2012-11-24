@@ -2,6 +2,66 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% Setup function
+game_well_played() ->
+    %application:stop(Name),
+    ok = application:start(game),
+    Max=[{max, S1} || S1 <- [
+        "To insert into a text too hurriedly or inappropriately", %Spatchcock
+        "pertaining to membership by citizenship rather than kinship",
+        "Boustrophedon, Of writing, alternating left to right then right to left."
+    ]],
+    Seb=[{seb, S2} || S2 <- [
+        "Condition of having abnormally large digits.",
+        "Barathrum, a bottomless pit, which characterises the stomach of some people",
+        "government by the people"
+    ]],
+    Jay=[{jay, S3} || S3 <- [
+       "bronze-coloured metal alloy used for decorative vessels",
+       "dolee, one who receives a government benefit, especially unemployment benefits",
+       "dulia, inferior veneration of saints and angels in comparison with God"
+    ]],
+    %submit all sentences
+    lists:map(fun(Batch) ->
+        lists:map(fun(Row) ->
+            {PlayerName, Val}=Row,
+            game:submit(PlayerName, Val)
+        end, Batch)
+    end, [Seb, Max, Jay]),
+    noparams.
+
+%% Cleanup function
+game_finished(_) ->
+    application:stop(game),
+    timer:sleep(500).
+
+ranking_scores_test_() ->
+    {foreach,
+     fun game_well_played/0,
+     fun game_finished/1,
+     [ % --- list of tests ----
+        fun basic_numbers/1,
+        fun scores_ratings/1
+      ]
+    }.
+
+basic_numbers(_) ->
+    [?_assertMatch(9, length(game:get_scores())),
+     ?_assertMatch(3, length(game:get_player())),
+     ?_assertMatch(3, length(game:get_scores(jay))),
+     ?_assertMatch(3, length(game:get_scores(max))),
+     ?_assertMatch(3, length(game:get_scores(seb)))
+    ].
+
+scores_ratings(_) ->
+    [?_assertMatch({jay, 15}, game:get_highscore()),
+     ?_assertMatch([
+                {10, "comparison"},
+                {12, "unemployment"},
+                {15, "bronze-coloured"}
+            ], game:get_scores(jay))
+    ].
+
+%% Setup function
 start() ->
     Name=game,
     %application:stop(Name),
