@@ -128,7 +128,23 @@ handle_call({submit_score, PlayerName, Sentence}, _From, #state{players=Players,
     Word=get_longest_word(Sentence),
     Score=length(Word),
     ScoresList=[{PlayerName, Score, Word}|Scores],
-    {reply, Score, State#state{players=PlayersList,scores=ScoresList}};
+    {reply, {Score, Word}, State#state{players=PlayersList,scores=ScoresList}};
+
+handle_call(update_highscore, _From, #state{highscore=Highscore, scores=Scores}=State) ->
+    [{Player,Topscore,_}|_]=lists:reverse(lists:keysort(2, Scores)),
+    lager:log(info, [], "highscore-state ~p, top ~p", [Highscore, Topscore]),
+    NewOne=case Highscore of
+        {factory, 0} ->
+            lager:log(info, [], "update_highscore, first time"),
+            {Player,Topscore};
+        {_,Oldscore} when Topscore > Oldscore ->
+            lager:log(info, [], "highscore replaced by ~s, old ~p, new ~p", [Player, Oldscore, Topscore]),
+            {Player,Topscore};
+        {_,_} ->
+            lager:log(info, [], "highscore untouched"),
+            Highscore
+    end,
+    {reply, NewOne, State#state{highscore=NewOne}};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -139,18 +155,6 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 -spec handle_info(_, record()) -> {noreply, _}.
-handle_info(update_highscore, #state{highscore=Highscore, scores=Scores}=State) ->
-    [{Player,Topscore,_}|_]=lists:reverse(lists:keysort(2, Scores)),
-    NewOne=case Highscore of
-        {_,Oldscore,_} when Topscore > Oldscore ->
-            {Player,Topscore};
-        {factory, 0} ->
-            {Player,Topscore};
-        {_,_} ->
-            Highscore
-    end,
-    {noreply, State#state{highscore=NewOne}};
-
 handle_info(_Info, State) ->
     {noreply, State}.
 

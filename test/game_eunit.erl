@@ -6,28 +6,29 @@ game_well_played() ->
     %application:stop(Name),
     ok = application:start(game),
     Max=[{max, S1} || S1 <- [
-        "To insert into a text too hurriedly or inappropriately", %Spatchcock
-        "pertaining to membership by citizenship rather than kinship",
-        "Boustrophedon, Of writing, alternating left to right then right to left."
+        "To insert into a text too hurriedly or inappropriately", %score 15 (highest highscore)
+        "pertaining to membership by citizenship rather than kinship", %score 11
+        "Boustrophedon, Of writing, alternating left to right then right to left." %score 14
     ]],
     Seb=[{seb, S2} || S2 <- [
-        "Condition of having abnormally large digits.",
-        "Barathrum, a bottomless pit, which characterises the stomach of some people",
-        "government by the people"
+        "Condition of having abnormally large digits.", %score 10
+        "Barathrum, a bottomless pit, which characterises the stomach of some people", %score 13
+        "government by the people" %score 10
     ]],
     Jay=[{jay, S3} || S3 <- [
-       "bronze-coloured metal alloy used for decorative vessels",
-       "dolee, one who receives a government benefit, especially unemployment benefits",
-       "dulia, inferior veneration of saints and angels in comparison with God"
+       "bronze-coloured-metal alloy used for decorative vessels", %score 19 (highscore overwritten)
+       "dolee, one who receives a government benefit, especially unemployment benefits", %score 12
+       "dulia, inferior veneration of saints and angels in comparison with God" %score 10
     ]],
+    Players=[Max, Seb, Jay],
     %submit all sentences
     lists:map(fun(Batch) ->
         lists:map(fun(Row) ->
             {PlayerName, Val}=Row,
             game:submit(PlayerName, Val)
         end, Batch)
-    end, [Seb, Max, Jay]),
-    noparams.
+    end, Players),
+    Players.
 
 %% Cleanup function
 game_finished(_) ->
@@ -35,16 +36,17 @@ game_finished(_) ->
     timer:sleep(500).
 
 ranking_scores_test_() ->
-    {foreach,
-     fun game_well_played/0,
-     fun game_finished/1,
-     [ % --- list of tests ----
-        fun basic_numbers/1,
-        fun scores_ratings/1
-      ]
-    }.
+    {setup,
+     fun game_well_played/0, % Setup
+     fun game_finished/1,    % Cleanup
+     fun (SetupData) ->
+        [ % --- list of tests ----
+         basic_numbers(),
+         scores_ratings()
+        ]
+     end}.
 
-basic_numbers(_) ->
+basic_numbers() ->
     [?_assertMatch(9, length(game:get_scores())),
      ?_assertMatch(3, length(game:get_player())),
      ?_assertMatch(3, length(game:get_scores(jay))),
@@ -52,12 +54,12 @@ basic_numbers(_) ->
      ?_assertMatch(3, length(game:get_scores(seb)))
     ].
 
-scores_ratings(_) ->
-    [?_assertMatch({jay, 15}, game:get_highscore()),
+scores_ratings() ->
+    [?_assertMatch({jay, 21}, game:get_highscore()),
      ?_assertMatch([
                 {10, "comparison"},
                 {12, "unemployment"},
-                {15, "bronze-coloured"}
+                {21, "bronze-coloured-metal"}
             ], game:get_scores(jay))
     ].
 
