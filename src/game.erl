@@ -37,11 +37,15 @@ init([]) ->
 
 -spec submit(player_name(), string()) -> ok.
 submit(Player, Sentence) -> 
-    Score=submit_score(Player, Sentence),
-    ?MODULE ! update_highscore,
-    % "Great job <USER>, you have a new <HIGHSCORE> with word <WORD>!".
-    Msg=lists:concat(["score: ", Score, "~n"]),
-    io:format(Msg),
+    {Score, Word}=submit_score(Player, Sentence),
+    lager:log(info, [], "~s submit score ~p", [Player, Score]),
+    case gen_server:call(?MODULE, update_highscore) of
+        %improve this by adding the word to the highscore results
+        {Player, HighScore} ->
+            io:format("Great job ~p you have a new highscore: ~p with word ~p!!~n", [Player, HighScore, Word]);
+        _ ->
+            io:format("score: ~p~n", [Score])
+    end,
     ok.
 
 -spec get_player() -> [player()] | [].
@@ -72,7 +76,7 @@ get_highscore() ->
 %% Private functions
 %%--------------------------------------------------------------------
 
--spec submit_score(player_name(), integer()) -> integer().
+-spec submit_score(player_name(), integer()) -> {integer(), string()}.
 submit_score(Player, Score) ->
     gen_server:call(?MODULE, {submit_score, Player, Score}).
 
@@ -84,6 +88,7 @@ get_longest_word(Sentence) ->
 
 -spec update_player_facts(player(), list()) -> player().
 update_player_facts({PlayerName, []}, _ScoresList) ->
+    lager:log(info, [], "~s added to players list", [PlayerName]),
     Facts=[{played, 1}, {rank, 0}],
     {PlayerName, Facts};
 
