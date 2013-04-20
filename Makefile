@@ -26,6 +26,9 @@ distclean: clean
 test: compile
 	rebar skip_deps=true eunit
 
+run: compile
+	erl -sname game_server -config app -pa ./deps/lager/ebin -pa ./ebin -eval "application:start(game), lager:start()."
+
 # Generates the edoc documentation and places it under doc/ .
 docs:
 	rebar skip_deps=true doc
