@@ -2,8 +2,19 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% Setup function
-game_well_played() ->
+start() ->
+    Name=game,
     %application:stop(Name),
+    ok = application:start(Name),
+    Name.
+
+%% Cleanup function
+stop(Name) ->
+    application:stop(Name),
+    timer:sleep(500).
+
+%% Setup function
+game_well_played() ->
     ok = application:start(game),
     Max=[{max, S1} || S1 <- [
         "To insert into a text too hurriedly or inappropriately", %score 15 (highest highscore)
@@ -41,8 +52,8 @@ ranking_scores_test_() ->
      fun game_finished/1,    % Cleanup
      fun (SetupData) ->
         [ % --- list of tests ----
-         basic_numbers(),
-         scores_ratings()
+         %basic_numbers(),
+         %scores_ratings()
         ]
      end}.
 
@@ -63,31 +74,19 @@ scores_ratings() ->
             ], game:get_scores(jay))
     ].
 
-%% Setup function
-start() ->
-    Name=game,
-    %application:stop(Name),
-    ok = application:start(Name),
-    Name.
-
-%% Cleanup function
-stop(Name) ->
-    application:stop(Name),
-    timer:sleep(500).
-
 basic_actions_test_() ->
     {foreach,
-     fun start/0,
-     fun stop/1,
+     fun start/0, % Setup
+     fun stop/1,  % Cleanup
      [ % --- list of tests ----
         %players
         fun create_first_player/1,
         fun players_should_be_added_once/1,
         fun players_ordered/1,
         %scores
-        fun scores_get_saved/1,
-        fun scores_dataformat/1,
-        fun get_scores_player/1,
+        % fun scores_get_saved/1,
+        % fun scores_dataformat/1,
+        % fun get_scores_player/1,
         fun show_highscore_record/1,
         %internals
         fun get_longest_word/1
@@ -123,7 +122,7 @@ scores_get_saved(_) ->
     game:submit(john, "arithmic"),
     game:submit(tommie_lie, "cadence"),
     game:submit(simson, "Whoopsiedoh!"),
-    [?_assertMatch([Ta, Tb, Tc] when is_tuple(Ta), game:get_scores())].
+    [?_assertMatch([Ta, _, _] when is_tuple(Ta), game:get_scores())].
 
 scores_dataformat(_) ->
     game:submit(john, "foobar"),
@@ -142,7 +141,7 @@ show_highscore_record(_) ->
      ?_assertMatch(ok, game:submit(random_dude, "fooobar is used here often")),
      ?_assertMatch(ok, game:submit(john, "running and cadence are related")),
      ?_assertMatch(ok, game:submit(john, "this is a nice training for your vocabulaire")),
-     ?_assertMatch({john, 13}, game:get_highscore())
+     ?_assertMatch({john, 13, "chronoligical"}, game:get_highscore())
      ].
 
 get_longest_word(_) ->

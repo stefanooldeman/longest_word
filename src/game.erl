@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, submit/2, get_player/0, get_player/1, get_scores/0, get_scores/1, get_highscore/0]).
+-export([start_link/0, submit/2, get_player/0, get_player/1, get_highscore/0]).
 
 %% later this will be private or moved whatever
 -export([get_longest_word/1]).
@@ -14,11 +14,12 @@
 -type player() :: {player_name(), [{atom(), term()}]}.
 -type reply() :: term().
 -type reason() :: term().
+-type highscore() :: {player_name(), integer(), string()}.
 
 -record(state, {
     players :: [player()],
-    scores :: [{player_name(), integer(), string()}],
-    highscore :: {player_name(), integer()}
+    % FIXME top10 :: [{player_name(), integer(), string()}],
+    highscore :: highscore()
 }).
 
 %%--------------------------------------------------------------------
@@ -32,18 +33,21 @@ start_link() ->
 -spec init([]) -> {ok, record()} | {ok, record(), timeout()} | {ok, record(), hibernate} |
     {stop, reason()}.
 init([]) ->
-    InitState=#state {players=[], scores=[], highscore={factory, 0}},
+    InitState=#state {players=[], highscore={factory, 0, ""}},
     {ok, InitState}.
 
 -spec submit(player_name(), string()) -> ok.
 submit(Player, Sentence) -> 
-    {Score, Word}=submit_score(Player, Sentence),
+    Word=get_longest_word(Sentence),
+    Score=length(Word),
+
+    _ = update_players(Player, Score),
     lager:log(info, [], "~s submit score ~p", [Player, Score]),
-    case gen_server:call(?MODULE, update_highscore) of
-        %improve this by adding the word to the highscore results
-        {Player, HighScore} ->
-            io:format("Great job ~p you have a new highscore: ~p with word ~p!!~n", [Player, HighScore, Word]);
-        _ ->
+    case update_highscore(Player, Score, Word) of
+        new ->
+            Msg = "Great job ~p you have a new highscore: ~p with word ~p!!~n",
+            io:format(Msg, [Player, Score, Word]);
+        untouched ->
             io:format("score: ~p~n", [Score])
     end,
     ok.
@@ -59,26 +63,20 @@ get_player(Name) ->
         T when is_tuple(T) -> T
     end.
 
--spec get_scores() -> [{player_name(), integer(), string()}] | [].
-get_scores() ->
-    gen_server:call(?MODULE, all_scores).
-
--spec get_scores(player_name()) -> [{integer(), string()}] | [].
-get_scores(Name) ->
-    %filter all scores on this player
-    [{Score, Word} || {Player, Score, Word} <- get_scores(), Player == Name].
-
--spec get_highscore() -> {player_name(), integer()}.
+-spec get_highscore() -> highscore().
 get_highscore() ->
     gen_server:call(?MODULE, get_highscore).
 
 %%--------------------------------------------------------------------
 %% Private functions
 %%--------------------------------------------------------------------
+-spec update_highscore(player_name(), integer(), string()) -> highscore().
+update_highscore(Player, Score, Word) ->
+    gen_server:call(?MODULE, {update_highscore, Player, Score, Word}).
 
--spec submit_score(player_name(), integer()) -> {integer(), string()}.
-submit_score(Player, Score) ->
-    gen_server:call(?MODULE, {submit_score, Player, Score}).
+-spec update_players(player_name(), integer()) -> {integer(), string()}.
+update_players(Player, Score) ->
+    gen_server:call(?MODULE, {update_players, Player, Score}).
 
 -spec get_longest_word(string()) -> string().
 get_longest_word(Sentence) ->
@@ -116,40 +114,32 @@ give_rank(_PlayerName) ->
 handle_call(all_players, _From, #state{players=Players}=State) ->
     {reply, Players, State};
 
-handle_call(all_scores, _From, #state{scores=Scores}=State) ->
-    {reply, Scores, State};
-
 handle_call(get_highscore, _From, #state{highscore=Highscore}=State) ->
     {reply, Highscore, State};
 
-handle_call({submit_score, PlayerName, Sentence}, _From, #state{players=Players,scores=Scores}=State) ->
-    %make sure user is updated
+handle_call({update_players, PlayerName, Sentence}, _From, #state{players=Players}=State) ->
     Player=case lists:keyfind(PlayerName, 1, Players) of
         false -> {PlayerName, []};
         Other when is_tuple(Other) -> Other
     end,
+    % add players to list
     PlayersList= lists:keystore(PlayerName, 1, Players, update_player_facts(Player, [])),
-    % add highscore shit here
-    Word=get_longest_word(Sentence),
-    Score=length(Word),
-    ScoresList=[{PlayerName, Score, Word}|Scores],
-    {reply, {Score, Word}, State#state{players=PlayersList,scores=ScoresList}};
+    {reply, ok, State#state{players=PlayersList}};
 
-handle_call(update_highscore, _From, #state{highscore=Highscore, scores=Scores}=State) ->
-    [{Player,Topscore,_}|_]=lists:reverse(lists:keysort(2, Scores)),
-    lager:log(info, [], "highscore-state ~p, top ~p", [Highscore, Topscore]),
-    NewOne=case Highscore of
-        {factory, 0} ->
+handle_call({update_highscore, Player, Score, Word}, _From, #state{highscore=Highscore}=State) ->
+    {Status, NewOne}=case Highscore of
+        {factory, 0, _} ->
             lager:log(info, [], "update_highscore, first time"),
-            {Player,Topscore};
-        {_,Oldscore} when Topscore > Oldscore ->
-            lager:log(info, [], "highscore replaced by ~s, old ~p, new ~p", [Player, Oldscore, Topscore]),
-            {Player,Topscore};
-        {_,_} ->
+            {new, {Player, Score, Word}};
+        {_,Oldscore,_} when Score > Oldscore ->
+            lager:log(info, [], "highscore replaced by ~s, old ~p, new ~p", [Player, Oldscore, Score]),
+            {new, {Player, Score, Word}};
+        _Else ->
             lager:log(info, [], "highscore untouched"),
-            Highscore
+            {untouched, Highscore}
     end,
-    {reply, NewOne, State#state{highscore=NewOne}};
+
+    {reply, Status, State#state{highscore=NewOne}};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
